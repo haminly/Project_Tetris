@@ -1,0 +1,1015 @@
+<html>
+<canvas id='canvas' width="700px" height="700px">
+</canvas>
+<script>
+
+const x_min = 0;
+const x_max = 9;
+const y_min = 0;
+const y_max = 19; 
+
+let blues = [] //내려오는 block
+let blues_cmp = [] //회전 후 파랑블럭 좌표
+let blues_exp = [] //파랑블럭 예상 낙하 지점 좌표
+let next_blues = [] //다음 블럭
+let blacks = [] //위치한 블럭
+let sec = 0; //시간
+let move_sec = 1.5; //한칸 내려가는 속도
+let judge = 1;
+let block_num;
+let next_block_num = Math.floor(Math.random() *  7); //맨 처음 블럭 
+let clear_point = 0; //점수
+let bonus_can = 0; //보너스 유무
+let bonus = 0; //보너스 : 연속 클리어 점수
+
+function render() {
+	const canvas = document.getElementById('canvas');
+	const ctx = canvas.getContext('2d');
+
+	basic_paint(ctx);
+	expect_paint(ctx);
+	blues_paint(ctx);
+	black_paint(ctx);
+	next_blues_paint(ctx);
+	txt_paint(ctx);
+}
+
+setInterval(function() {
+	render()
+	update(1.0 / 33)
+}, 33)
+
+function update(delta) {
+	ft_gameover();
+	ft_makeblues();
+	ft_expected();
+	ft_movesec(delta);
+}
+
+document.addEventListener('keydown', (event) => {
+  console.log('keydown event\n\n' + 'key: ' + event.code); 
+  if (event.code == 'ArrowRight')
+	ft_moveright();
+
+  else if (event.code == 'ArrowLeft')
+  	ft_moveleft();
+
+  else if (event.code == 'ArrowUp')
+	block_turn();	//회전 함수
+
+  else if (event.code == 'ArrowDown')
+	ft_movedown();
+
+  else if (event.code == 'Space')
+	ft_downstraight();
+    
+	render()
+});
+
+function basic_paint(ctx)
+{
+	ctx.fillStyle = 'gray';
+	for (let i = y_min; i <= y_max; i++){
+		for (let j = x_min; j <= x_max; j++){
+			ctx.fillRect(j * 21, i * 21, 20, 20);
+		}
+	}
+	for (let i = 0; i <= 4; i++){
+		for (let j = 12; j <= 15; j++){
+			ctx.fillRect(j * 21, i * 21, 20, 20);
+		}
+	}
+}
+
+function expect_paint(ctx)
+{
+	ctx.fillStyle = 'black';	
+	for (let i in blues_exp){
+		ctx.fillRect(blues_exp[i].x * 21, blues_exp[i].y * 21, 3, 20);
+		ctx.fillRect(blues_exp[i].x * 21, blues_exp[i].y * 21, 20, 3);
+		ctx.fillRect(blues_exp[i].x * 21 + 17, blues_exp[i].y * 21, 3, 20);
+		ctx.fillRect(blues_exp[i].x * 21, blues_exp[i].y * 21 + 17, 20, 3);
+	}
+}
+function blues_paint(ctx){
+	if (block_num == 0 || block_num == 7)
+	{
+		ctx.fillStyle = "#00CCCC"
+		for (let i in blues){
+			ctx.fillRect(blues[i].x * 21, blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (block_num == 1)
+	{
+		ctx.fillStyle = "#CC9933"
+		for (let i in blues){
+			ctx.fillRect(blues[i].x * 21, blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (block_num == 2 || block_num == 9 || block_num == 16 || block_num == 23)
+	{
+		ctx.fillStyle = "#66CC33"
+		for (let i in blues){
+			ctx.fillRect(blues[i].x * 21, blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (block_num == 3 || block_num == 10 || block_num == 17 || block_num == 24)
+	{
+		ctx.fillStyle = "#CC3333"
+		for (let i in blues){
+			ctx.fillRect(blues[i].x * 21, blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (block_num == 4 || block_num == 11 || block_num == 18 || block_num == 25)
+	{
+		ctx.fillStyle = "#330099"
+		for (let i in blues){
+			ctx.fillRect(blues[i].x * 21, blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (block_num == 5 || block_num == 12 || block_num == 19 || block_num == 26)
+	{
+		ctx.fillStyle = "#FF6633"
+		for (let i in blues){
+			ctx.fillRect(blues[i].x * 21, blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (block_num == 6 || block_num == 13 || block_num == 20 || block_num == 27)
+	{
+		ctx.fillStyle = "#CC3399"
+		for (let i in blues){
+			ctx.fillRect(blues[i].x * 21, blues[i].y * 21, 20, 20);
+		}
+	}
+}
+
+function black_paint(ctx)
+{
+	ctx.fillStyle = 'black';
+	for (let i in blacks){
+		ctx.fillRect(blacks[i].x * 21, blacks[i].y * 21, 20, 20);
+	}
+}
+
+function next_blues_paint(ctx){
+	if (next_block_num == 0)
+	{
+		ctx.fillStyle = "#00CCCC"
+		for (let i in next_blues){
+			ctx.fillRect(next_blues[i].x * 21, next_blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (next_block_num == 1)
+	{
+		ctx.fillStyle = "#CC9933"
+		for (let i in next_blues){
+			ctx.fillRect(next_blues[i].x * 21, next_blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (next_block_num == 2)
+	{
+		ctx.fillStyle = "#66CC33"
+		for (let i in next_blues){
+			ctx.fillRect(next_blues[i].x * 21, next_blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (next_block_num == 3)
+	{
+		ctx.fillStyle = "#CC3333"
+		for (let i in next_blues){
+			ctx.fillRect(next_blues[i].x * 21, next_blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (next_block_num == 4)
+	{
+		ctx.fillStyle = "#330099"
+		for (let i in next_blues){
+			ctx.fillRect(next_blues[i].x * 21, next_blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (next_block_num == 5)
+	{
+		ctx.fillStyle = "#FF6633"
+		for (let i in next_blues){
+			ctx.fillRect(next_blues[i].x * 21, next_blues[i].y * 21, 20, 20);
+		}
+	}
+	else if (next_block_num)
+	{
+		ctx.fillStyle = "#CC3399"
+		for (let i in next_blues){
+			ctx.fillRect(next_blues[i].x * 21, next_blues[i].y * 21, 20, 20);
+		}
+	}
+}
+
+function txt_paint(ctx)
+{
+	ctx.fillStyle = 'white';
+	for (let i = 105; i <= 200; i++){
+		for (let j = 230; j <= 380; j++){
+			ctx.fillRect(j, i, 1, 1);
+		}
+	}
+	ctx.fillStyle = 'black';
+	ctx.font = "italic bold 20px Arial, sans-serif";
+	ctx.fillText("NEXT BLOCK", 231, 126);
+	ctx.fillText("POINT : " + clear_point, 252, 160);
+}
+
+
+function ft_gameover()
+{
+	if (blacks.some(black => black.y < y_min)) //끝까지 차면 리셋
+	{
+		alert("GAME OVER\n POINT : " + clear_point);
+		blacks.splice(0);
+		move_sec = 1.5;  //속도 초기화
+		clear_point = 0;
+	}
+}
+
+function ft_makeblues()
+{
+	if (!blues.length) //파랑블록 없으면 블록 생성
+	{
+		makeblock();
+	}
+}
+
+function ft_expected()
+{
+	let exp = 0; //expect 예상 블럭 위치 인덱스
+
+	blues_exp.splice(0);
+	while (judge) //예상 낙하 지점 객체넣기
+	{
+		for (let i = 0; i < blues.length; i++)
+		{
+			if (blues[i].y + exp == y_max || checkblack(i, 0, exp + 1))
+			{
+				judge = 0;
+				exp--;
+				break;
+			}
+			
+		}
+		exp++;
+	}
+	for (let i = 0; i < blues.length; i++)
+		blues_exp.push({'x' : blues[i].x, 'y' : (blues[i].y + exp)}); 
+	judge = 1;
+	
+}
+
+function ft_movesec(delta)
+{
+	sec += delta;
+	move_sec -= 0.0001;  //move_sec 이 점점 작아지며
+	if (sec > move_sec) //시간이 갈수록 블럭 내려가는 속도가 빨라짐
+	{
+		for (let i in blues)
+		{
+			if (blues[i].y == y_max || checkblack(i, 0, 1))
+			{
+			judge = 0;
+			break;
+			}
+		}
+		if (judge == 1)
+		{
+			for (let i in blues)
+			{
+				blues[i].y += 1;
+			}
+		}
+		else
+		{
+			for (let i = 0; i < blues.length; i++)
+			{
+				blacks.push({'x' : blues[i].x, 'y' : blues[i].y});
+			}
+			blues.splice(0);
+			check_line(); //한줄 채우면 사라지는 함수
+			judge = 1;
+		}
+
+		sec = 0;
+	}
+}
+
+function check_line(){
+	let check;
+	for (let i = y_min; i <= y_max; i++)
+	{
+		check = 1;
+		for (let j = x_min; j <= x_max; j++)
+		{
+			if (!blacks.some(black => black.x == j && black.y == i))
+			{
+				check = 0;
+				break;
+			}
+		}
+		if (check == 1)
+		{
+			for (let j = 0; j < blacks.length; j++)
+			{
+				if (blacks[j].y == i){
+					blacks.splice(j, 1);
+					j--;
+				}
+			}
+			for (let j = 0; j < blacks.length; j++)
+			{
+				if (blacks[j].y < i){
+					blacks[j].y += 1;
+				}
+			}
+			clear_point = clear_point + 1 + bonus;
+			bonus_can = 1;
+		}
+	}
+	if (bonus_can == 1) // 연속해서 라인 클리어시 보너스 점수
+	{
+		bonus += 1;
+		bonus_can = 0;
+	}
+	else
+		bonus = 0;
+}
+
+function checkblack(i, a, b){
+	return blacks.some(black => black.x === (blues[i].x + a) && black.y === (blues[i].y + b));
+}
+
+function checkblues_cmp(i, a, b){
+	return blacks.some(black => black.x === (blues_cmp[i].x + a) && black.y === (blues_cmp[i].y + b));
+}
+
+function makeblock(){ //블럭 생성 함수
+	block_num = next_block_num;
+	next_block_num = Math.floor(Math.random() *  7);
+	next_blues.splice(0);
+	make_next_block();
+	if (block_num == 0)
+	{
+		blues.push({'x' : 4, 'y' : 0}, {'x' : 4, 'y' : -1}, {'x' : 4, 'y' : -2}, {'x' : 4, 'y' : -3});
+	}
+	else if (block_num == 1)
+	{
+		blues.push({'x' : 4, 'y' : 0}, {'x' : 5, 'y' : 0}, {'x' : 4, 'y' : -1}, {'x' : 5, 'y' : -1});
+	}
+	else if (block_num == 2)
+	{
+		blues.push({'x' : 4, 'y' : -2}, {'x' : 4, 'y' : -1}, {'x' : 5, 'y' : -1}, {'x' : 5, 'y' : 0});
+	}
+	else if (block_num == 3)
+	{
+		blues.push({'x' : 4, 'y' : 0}, {'x' : 4, 'y' : -1}, {'x' : 5, 'y' : -1}, {'x' : 5, 'y' : -2});
+	}
+	else if (block_num == 4)
+	{
+		blues.push({'x' : 4, 'y' : 0}, {'x' : 4, 'y' : -1}, {'x' : 4, 'y' : -2}, {'x' : 5, 'y' : -2});
+	}
+	else if (block_num == 5)
+	{
+		blues.push({'x' : 5, 'y' : 0}, {'x' : 5, 'y' : -1}, {'x' : 5, 'y' : -2}, {'x' : 4, 'y' : -2});
+	}
+	else
+	{
+		blues.push({'x' : 4, 'y' : 0}, {'x' : 5, 'y' : 0}, {'x' : 6, 'y' : 0}, {'x' : 5, 'y' : -1});
+	}
+}
+
+function make_next_block()
+{
+	if (next_block_num == 0)
+	{
+		next_blues.push({'x' : 14, 'y' : 4}, {'x' : 14, 'y' : 1}, {'x' : 14, 'y' : 2}, {'x' : 14, 'y' : 3});
+	}
+	else if (next_block_num == 1)
+	{
+		next_blues.push({'x' : 13, 'y' : 2}, {'x' : 13, 'y' : 3}, {'x' : 14, 'y' : 2}, {'x' : 14, 'y' : 3});
+	}
+	else if (next_block_num == 2)
+	{
+		next_blues.push({'x' : 13, 'y' : 1}, {'x' : 13, 'y' : 2}, {'x' : 14, 'y' : 2}, {'x' : 14, 'y' : 3});
+	}
+	else if (next_block_num == 3)
+	{
+		next_blues.push({'x' : 14, 'y' : 1}, {'x' : 14, 'y' : 2}, {'x' : 13, 'y' : 2}, {'x' : 13, 'y' : 3});
+	}
+	else if (next_block_num == 4)
+	{
+		next_blues.push({'x' : 14, 'y' : 1}, {'x' : 13, 'y' : 1}, {'x' : 13, 'y' : 2}, {'x' : 13, 'y' : 3});
+	}
+	else if (next_block_num == 5)
+	{
+		next_blues.push({'x' : 13, 'y' : 1}, {'x' : 14, 'y' : 1}, {'x' : 14, 'y' : 2}, {'x' : 14, 'y' : 3});
+	}
+	else
+	{
+		next_blues.push({'x' : 13, 'y' : 3}, {'x' : 14, 'y' : 3}, {'x' : 15, 'y' : 3}, {'x' : 14, 'y' : 2});
+	}
+}
+
+function checkblack(i, a, b){ //blues 블럭 위치가 black블럭과 겹치면 1, 아니면 0
+	return blacks.some(black => black.x === (blues[i].x + a) && black.y === (blues[i].y + b));
+}
+
+function checkblues_cmp(i, a, b){ // blues_cmp 블럭 위치가  black블럭과 겹치면 1, 아니면 0
+	return blacks.some(black => black.x === (blues_cmp[i].x + a) && black.y === (blues_cmp[i].y + b));
+}
+
+function check_out(i, a, b) // canvas 밖으로 나가면 1, 아니면 0 리턴
+{
+	if (blues_cmp[i].y + b > y_max || blues_cmp[i].x + a > x_max || blues_cmp[i].x  + a < x_min)
+		return (1);
+	else
+		return (0);
+}
+
+function turn_possible()
+{
+	let p = 1;
+	for (let i = 0; i < blues_cmp.length; i++)
+	{
+		if (checkblues_cmp(i,0,0) || check_out(i,0,0))
+		{
+			p = 0
+			break;
+		}
+	}
+	if (p == 1)
+		return (1);
+	p = 1;
+	for (let i = 0; i < blues_cmp.length; i++)
+	{
+		if (checkblues_cmp(i,1,0) || check_out(i,1,0))
+		{
+			p = 0;
+			break;
+		}
+	}
+	if (p == 1)
+		return (2);
+	p = 1;
+	for (let i = 0; i < blues_cmp.length; i++)
+	{
+		if (checkblues_cmp(i,0,-1) || check_out(i,0,-1))
+		{
+			p = 0;
+			break;
+		}
+	}
+	if (p == 1)
+		return (3);
+	p = 1;
+	for (let i = 0; i < blues_cmp.length; i++)
+	{
+		if (checkblues_cmp(i,-1,0) || check_out(i,-1,0))
+		{
+			p = 0;
+			break;
+		}
+	}
+	if (p == 1)
+		return (4);
+	p = 1;
+	for (let i = 0; i < blues_cmp.length; i++)
+	{
+		if (checkblues_cmp(i,1,-1) || check_out(i,1,-1))
+		{
+			p = 0;
+			break;
+		}
+	}
+	if (p == 1)
+		return (5);
+	p = 1;
+	for (let i = 0; i < blues_cmp.length; i++)
+	{
+		if (checkblues_cmp(i,-1,-1) || check_out(i,-1,-1))
+		{
+			p = 0;
+			break;
+		}
+	}
+	if (p == 1)
+		return (6);
+	return (0);
+}
+
+function block_move(turn_num)
+{
+	if (turn_num == 1)
+	{
+		for (let i = 0; i < blues_cmp.length; i++)
+		{
+			blues.push({'x' : blues_cmp[i].x, 'y' : blues_cmp[i].y});
+		}
+	}
+	else if (turn_num == 2)
+	{
+		for (let i = 0; i < blues_cmp.length; i++)
+		{
+			blues.push({'x' : blues_cmp[i].x + 1, 'y' : blues_cmp[i].y});
+		}
+	}
+	else if (turn_num == 3)
+	{
+		for (let i = 0; i < blues_cmp.length; i++)
+		{
+			blues.push({'x' : blues_cmp[i].x, 'y' : blues_cmp[i].y - 1});
+		}
+	}
+	else if (turn_num == 4)
+	{
+		for (let i = 0; i < blues_cmp.length; i++)
+		{
+			blues.push({'x' : blues_cmp[i].x - 1, 'y' : blues_cmp[i].y});
+		}
+	}
+	else if (turn_num == 5)
+	{
+		for (let i = 0; i < blues_cmp.length; i++)
+		{
+			blues.push({'x' : blues_cmp[i].x + 1, 'y' : blues_cmp[i].y - 1});
+		}
+	}
+	else if (turn_num == 6)
+	{
+		for (let i = 0; i < blues_cmp.length; i++)
+		{
+			blues.push({'x' : blues_cmp[i].x - 1, 'y' : blues_cmp[i].y - 1});
+		}
+	}
+}
+
+function ft_moveright()
+{
+	for (let i in blues)
+	{
+		if (blues[i].x == x_max || checkblack(i, 1, 0))
+		{
+		judge = 0;
+		break;
+		}
+	}
+	if (judge == 1)
+	{
+		for (let i in blues)
+		{
+			blues[i].x += 1;
+		}
+	}
+	else
+		judge = 1;
+}
+
+function ft_moveleft()
+{
+	for (let i in blues)
+	{
+		if (blues[i].x == x_min || checkblack(i, -1, 0))
+		{
+		judge = 0;
+		break;
+		}
+	}
+	if (judge == 1)
+	{
+		for (let i in blues)
+		{
+			blues[i].x -= 1;
+		}
+	}
+	else
+		judge = 1;
+}
+
+function ft_movedown()
+{
+	for (let i in blues)
+	{
+		if (blues[i].y == y_max || checkblack(i, 0, 1))
+		{
+		judge = 0;
+		break;
+		}
+	}
+	if (judge == 1)
+	{
+		for (let i in blues)
+		{
+			blues[i].y += 1;
+		}
+	}
+	else
+		judge = 1;
+
+}
+
+function ft_downstraight()
+{
+	let idx_y = 0;
+	while (judge)
+	{
+		for (let i = 0; i < blues.length; i++)
+		{
+			if (blues[i].y + idx_y == y_max || checkblack(i, 0, idx_y + 1))
+			{
+				judge = 0;
+				idx_y--;
+				break;
+			}
+			
+		}
+		idx_y++;
+	}
+	for (let i = 0; i < blues.length; i++)
+	{
+		blacks.push({'x' : blues[i].x, 'y' : (blues[i].y + idx_y)});
+		blues.splice(i, 1); 
+		i--;
+	}
+	judge = 1;
+	check_line(); //한줄 채우면 사라지는 함수
+  }
+
+
+function block_turn()
+{
+	let possible = 1;
+	let idx = 1;
+	let turn_num;
+	if (block_num == 0) //일자 블럭
+	{
+		while (possible != 4 && !checkblack(2, idx * (-1), 0) && blues[2].x - idx >= x_min) //왼쪽 공간 확인
+		{
+			idx += 1;
+			possible += 1;
+		}
+		idx = 1;
+		while (possible != 4 && !checkblack(2, idx, 0) && blues[2].x + idx <= x_max) //오른쪽 공간 확인
+		{
+			idx += 1;
+			possible += 1;
+		}
+		if (possible == 4)
+		{
+			blues[0].x -= 2;
+			blues[0].y -= 2;
+			blues[1].x -= 1;
+			blues[1].y -= 1;
+			blues[3].x += 1;
+			blues[3].y += 1;
+			block_num = 7;
+		}
+		while (blues[0].x < x_min || checkblack(0,0,0) || checkblack(1,0,0)) //왼쪽 공간 확인
+		{
+			for (let i = 0; i < blues.length; i++)
+				blues[i].x += 1;
+		}
+		while (blues[3].x > x_max || checkblack(3,0,0)) //오른쪽 공간 확인
+		{
+			for (let i = 0; i < blues.length; i++)
+				blues[i].x -= 1;
+		}
+	}
+	else if (block_num == 7) //누운 일자 블럭
+	{
+		while (possible != 4 && !checkblack(2, 0, idx * (-1))) //위쪽 공간 확인
+		{
+			idx += 1;
+			possible += 1;
+		}
+		idx = 1;
+		while (possible != 4 && !checkblack(2, 0, idx) && blues[2].y + idx <= y_max) //아래쪽 공간 확인
+		{
+			idx += 1;
+			possible += 1;
+		}
+		if (possible == 4)
+		{
+			blues[0].x += 2;
+			blues[0].y += 2;
+			blues[1].x += 1;
+			blues[1].y += 1;
+			blues[3].x -= 1;
+			blues[3].y -= 1;
+			block_num = 0;
+		}
+		while (blues[0].y > y_max || checkblack(0,0,0) || checkblack(1,0,0)) //아래 공간 확인
+		{
+			for (let i = 0; i < blues.length; i++)
+				blues[i].y -= 1;
+		}
+	}
+	else if(block_num == 2)
+	{
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 9;
+		}
+	}
+	else if(block_num == 9)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 16;
+		}
+	}
+	else if(block_num == 16)
+	{
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 23;
+		}
+	}
+	else if(block_num == 23)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 2;
+		}
+	}
+	else if(block_num == 3)
+	{
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 10;
+		}
+	}
+	else if(block_num == 10)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 17;
+		}
+	}
+	else if(block_num == 17)
+	{
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 24;
+		}
+	}
+	else if(block_num == 24)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 3;
+		}
+	}
+	else if(block_num == 4)
+	{
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 11;
+		}
+	}
+	else if(block_num == 11)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 18;
+		}
+	}
+	else if(block_num == 18)
+	{
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 25;
+		}
+	}
+	else if(block_num == 25)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 4;
+		}
+	}
+	else if(block_num == 5)
+	{
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 12;
+		}
+	}
+	else if(block_num == 12)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 19;
+		}
+	}
+	else if(block_num == 19)
+	{
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 26;
+		}
+	}
+	else if(block_num == 26)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 5;
+		}
+	}
+	else if(block_num == 6)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 13;
+		}
+	}
+	else if(block_num == 13)
+	{
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0); // blues 초기화
+			block_move(turn_num); // blues에 객체 추가
+			blues_cmp.splice(0); //blues_cmp 초기화
+			block_num = 20; //넘버 초기화
+		}
+	}
+	else if(block_num == 20)
+	{
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y + 1});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 27;
+		}
+	}
+	else if(block_num == 27)
+	{
+		blues_cmp.push({'x' : blues[1].x + 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x - 1, 'y' : blues[1].y});
+		blues_cmp.push({'x' : blues[1].x, 'y' : blues[1].y - 1});
+		turn_num = turn_possible();
+		if (turn_num)
+		{
+			blues.splice(0);
+			block_move(turn_num);
+			blues_cmp.splice(0);
+			block_num = 6;
+		}
+	}
+}
+
+render()
+
+</script>
+</html>
